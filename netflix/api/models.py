@@ -24,6 +24,27 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+class StripeEvent(models.Model):
+    """
+    Track processed Stripe webhook events to prevent duplicate processing.
+    Critical for webhook idempotency.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event_id = models.CharField(max_length=255, unique=True, db_index=True)
+    event_type = models.CharField(max_length=100)
+    processed_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'stripe_event'
+        indexes = [
+            models.Index(fields=['event_id']),
+            models.Index(fields=['processed_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.event_type} - {self.event_id}"
+
+
 # ==================== USER MODEL ====================
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -38,6 +59,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Django auth fields
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    
+    # Payment Info
+    stripe_customer_id = models.CharField(max_length=100, blank=True, null=True)
     
     objects = UserManager()
     
@@ -102,6 +126,15 @@ class SubscriptionPlan(models.Model):
     max_download_devices = models.IntegerField(default=0)
     display_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    
+    # Payment Gateway IDs
+    stripe_product_id = models.CharField(max_length=100, blank=True, null=True)
+    stripe_price_id_monthly = models.CharField(max_length=100, blank=True, null=True)
+    stripe_price_id_yearly = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Trial period
+    trial_days = models.IntegerField(default=0, help_text="Number of free trial days (0 = no trial)")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -122,18 +155,25 @@ class UserSubscription(models.Model):
     class SubscriptionStatus(models.TextChoices):
         ACTIVE = 'active', 'Active'
         PENDING = 'pending', 'Pending'
+        TRIALING = 'trialing', 'Trialing'
+        PAST_DUE = 'past_due', 'Past Due'
         CANCELED = 'canceled', 'Canceled'
         EXPIRED = 'expired', 'Expired'
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
     subscription_plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT)
     status = models.CharField(max_length=20, choices=SubscriptionStatus.choices, default=SubscriptionStatus.PENDING)
     current_period_start = models.DateTimeField()
     current_period_end = models.DateTimeField()
+    trial_end = models.DateTimeField(null=True, blank=True)
     cancel_at_period_end = models.BooleanField(default=False)
+    
+    # Payment Info
     payment_method_last_four = models.CharField(max_length=4, blank=True, null=True)
     payment_method_type = models.CharField(max_length=20, blank=True, null=True)
+    stripe_subscription_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_subscription_id = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -144,6 +184,7 @@ class UserSubscription(models.Model):
             models.Index(fields=['status']),
             models.Index(fields=['current_period_end']),
             models.Index(fields=['status', 'current_period_end']),
+            models.Index(fields=['stripe_subscription_id']),  # Critical for webhook lookups
         ]
     
     def __str__(self):
@@ -165,7 +206,7 @@ class BillingHistory(models.Model):
     payment_status = models.CharField(max_length=20, choices=PaymentStatus.choices)
     billing_cycle_start = models.DateTimeField()
     billing_cycle_end = models.DateTimeField()
-    invoice_number = models.CharField(max_length=50, unique=True)
+    invoice_number = models.CharField(max_length=50, unique=True, db_index=True)
     payment_gateway_transaction_id = models.CharField(max_length=100, blank=True, null=True)
     receipt_url = models.URLField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -397,12 +438,9 @@ class WatchHistory(models.Model):
     class Meta:
         db_table = 'watch_history'
         indexes = [
-            models.Index(fields=['profile']),
-            models.Index(fields=['content']),
-            models.Index(fields=['watch_started_at']),
-            models.Index(fields=['profile', 'watch_started_at']),
-            models.Index(fields=['content', 'watch_started_at']),
-            models.Index(fields=['profile', 'content', 'watch_started_at']),
+            models.Index(fields=['profile', '-watch_started_at']),
+            models.Index(fields=['content', '-watch_started_at']),
+            models.Index(fields=['profile', 'content', '-watch_started_at']),
         ]
         ordering = ['-watch_started_at']
     

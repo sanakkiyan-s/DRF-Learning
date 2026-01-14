@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        .header {
+            background-color: #28a745;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .content {
+            padding: 30px;
+            color: #333333;
+        }
+
+        .footer {
+            background-color: #333333;
+            padding: 20px;
+            text-align: center;
+            color: #999999;
+            font-size: 12px;
+        }
+
+        .receipt {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Payment Received</h1>
+        </div>
+        <div class="content">
+            <h2>Hi {{ user }},</h2>
+            <p>Thank you for your payment!</p>
+
+            <div class="receipt">
+                <p><strong>Invoice:</strong> {{ invoice_number }}</p>
+                <p><strong>Amount:</strong> {{ currency|upper }} {{ amount }}</p>
+                <p><strong>Date:</strong> {% now "F j, Y" %}</p>
+            </div>
+
+            <p>This email serves as your payment receipt. Keep it for your records.</p>
+        </div>
+        <div class="footer">
+            <p>© 2024 Netflix Clone. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>
