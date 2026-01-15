@@ -337,6 +337,21 @@ class StripeWebhookView(APIView):
         
         except Exception as e:
             logger.error(f"Webhook error: {e}", exc_info=True)
+            
+            # Write error to file for debugging
+            try:
+                import traceback
+                with open("/home/sana/django/webhook_debug.log", "a") as f:
+                    f.write(f"\n--- Error at {timezone.now()} ---\n")
+                    f.write(f"Event: {event_type} ({event_id})\n")
+                    f.write(str(e) + "\n")
+                    traceback.print_exc(file=f)
+            except Exception:
+                pass
+
+            # If processing failed, remove the event marker so retry can happen
+            if event_id:
+                StripeEvent.objects.filter(event_id=event_id).delete()
             return HttpResponse(status=500)
 
         return HttpResponse(status=200)
@@ -413,6 +428,22 @@ class StripeWebhookView(APIView):
 
     def handle_payment_succeeded(self, invoice):
         subscription_id = invoice.get('subscription')
+        if not subscription_id:
+            # Fallback 1: try lines direct
+            lines = invoice.get('lines', {}).get('data', [])
+            if lines:
+                subscription_id = lines[0].get('subscription')
+            
+            # Fallback 2: try lines parent
+            if not subscription_id and lines:
+                period = lines[0].get('parent', {}).get('subscription_item_details', {})
+                subscription_id = period.get('subscription')
+                
+            # Fallback 3: try invoice parent
+            if not subscription_id:
+                parent = invoice.get('parent', {}).get('subscription_details', {})
+                subscription_id = parent.get('subscription')
+        
         invoice_number = invoice.get('number')
         
         if invoice.get('paid') is False:
@@ -423,41 +454,35 @@ class StripeWebhookView(APIView):
         
         if BillingHistory.objects.filter(invoice_number=invoice_number).exists():
             return
+            
+        # Try to find existing subscription
+        user_sub = UserSubscription.objects.filter(stripe_subscription_id=subscription_id).first()
         
-        try:
-            # Retry logic to handle race condition with checkout.session.completed
-            import time
-            user_sub = None
-            for attempt in range(3):
-                user_sub = UserSubscription.objects.filter(stripe_subscription_id=subscription_id).first()
-                if user_sub:
-                    break
-                time.sleep(1)  # Wait 1 second before retry
+        if not user_sub:
+            # If not found, fetch details from Stripe to create it
+            stripe_sub = stripe.Subscription.retrieve(subscription_id)
+            meta = stripe_sub.get('metadata', {})
+            user_id = meta.get('user_id')
+            plan_id = meta.get('plan_id')
             
-            if not user_sub:
-                stripe_sub = stripe.Subscription.retrieve(subscription_id)
-                meta = stripe_sub.get('metadata', {})
-                user_id = meta.get('user_id')
-                plan_id = meta.get('plan_id')
-                
-                if not user_id or not plan_id:
-                    return
-                
-                item = stripe_sub['items']['data'][0]
-                user_sub = UserSubscription.objects.create(
-                    stripe_subscription_id=subscription_id,
-                    user_id=user_id,
-                    subscription_plan_id=plan_id,
-                    status=UserSubscription.SubscriptionStatus.PENDING,
-                    current_period_start=datetime.fromtimestamp(item['current_period_start'], tz=dt_timezone.utc),
-                    current_period_end=datetime.fromtimestamp(item['current_period_end'], tz=dt_timezone.utc),
-                    payment_method_type='stripe'
-                )
+            if not user_id or not plan_id:
+                return
             
-            with transaction.atomic():
-                user_sub.status = UserSubscription.SubscriptionStatus.ACTIVE
-                user_sub.save()
-            
+            item = stripe_sub['items']['data'][0]
+            user_sub = UserSubscription.objects.create(
+                stripe_subscription_id=subscription_id,
+                user_id=user_id,
+                subscription_plan_id=plan_id,
+                status=UserSubscription.SubscriptionStatus.PENDING,
+                current_period_start=datetime.fromtimestamp(item['current_period_start'], tz=dt_timezone.utc),
+                current_period_end=datetime.fromtimestamp(item['current_period_end'], tz=dt_timezone.utc),
+                payment_method_type='stripe'
+            )
+        
+        with transaction.atomic():
+            user_sub.status = UserSubscription.SubscriptionStatus.ACTIVE
+            user_sub.save()
+        
             # Create billing history
             amount_paid = invoice.get('amount_paid', 0) / 100
             lines = invoice.get('lines', {}).get('data', [])
@@ -473,13 +498,13 @@ class StripeWebhookView(APIView):
                 user=user_sub.user,
                 subscription_plan=user_sub.subscription_plan,
                 amount=amount_paid,
-                currency=invoice.get('currency', 'usd').upper(),
-                payment_status=BillingHistory.PaymentStatus.COMPLETED,
-                billing_cycle_start=datetime.fromtimestamp(start_ts, tz=dt_timezone.utc) if start_ts else timezone.now(),
-                billing_cycle_end=datetime.fromtimestamp(end_ts, tz=dt_timezone.utc) if end_ts else timezone.now(),
-                invoice_number=invoice_number,
-                payment_gateway_transaction_id=invoice.get('payment_intent')
-            )
+                    currency=invoice.get('currency', 'usd').upper(),
+                    payment_status=BillingHistory.PaymentStatus.COMPLETED,
+                    billing_cycle_start=datetime.fromtimestamp(start_ts, tz=dt_timezone.utc) if start_ts else timezone.now(),
+                    billing_cycle_end=datetime.fromtimestamp(end_ts, tz=dt_timezone.utc) if end_ts else timezone.now(),
+                    invoice_number=invoice_number,
+                    payment_gateway_transaction_id=invoice.get('payment_intent')
+                )
             
             logger.info(f"Payment succeeded for {subscription_id}")
             
@@ -496,9 +521,6 @@ class StripeWebhookView(APIView):
                 },
                 recipient_email=user_sub.user.email
             )
-            
-        except Exception as e:
-            logger.error(f"Payment success error: {e}", exc_info=True)
 
     def handle_payment_failed(self, invoice):
         subscription_id = invoice.get('subscription')
