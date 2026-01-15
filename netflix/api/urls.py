@@ -1,4 +1,4 @@
-from .views import UserView
+from .views import UserView, ProfileView
 from .views_stripe import (
     StripeCheckoutView, StripeWebhookView, VerifyStripeSessionView, 
     SubscriptionPlanListView, SubscriptionStatusView, ManageSubscriptionView, BillingHistoryView
@@ -15,6 +15,7 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register('accounts', UserView, basename='account')
+router.register('profiles', ProfileView, basename='profile')
 
 urlpatterns = [
     path('', include(router.urls)),

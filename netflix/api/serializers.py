@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, SubscriptionPlan, BillingHistory, UserSubscription
+from .models import User, SubscriptionPlan, BillingHistory, UserSubscription, Profile
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -11,6 +11,13 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['id', 'name', 'avatar_url', 'language_code', 'is_kid_profile', 'age']
+
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):

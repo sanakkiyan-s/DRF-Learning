@@ -337,18 +337,6 @@ class StripeWebhookView(APIView):
         
         except Exception as e:
             logger.error(f"Webhook error: {e}", exc_info=True)
-            
-            # Write error to file for debugging
-            try:
-                import traceback
-                with open("/home/sana/django/webhook_debug.log", "a") as f:
-                    f.write(f"\n--- Error at {timezone.now()} ---\n")
-                    f.write(f"Event: {event_type} ({event_id})\n")
-                    f.write(str(e) + "\n")
-                    traceback.print_exc(file=f)
-            except Exception:
-                pass
-
             # If processing failed, remove the event marker so retry can happen
             if event_id:
                 StripeEvent.objects.filter(event_id=event_id).delete()
