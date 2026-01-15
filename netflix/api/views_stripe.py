@@ -418,6 +418,9 @@ class StripeWebhookView(APIView):
         if invoice.get('paid') is False:
             return
         
+        if not subscription_id:
+            return
+        
         if BillingHistory.objects.filter(invoice_number=invoice_number).exists():
             return
         
