@@ -1,7 +1,10 @@
 from rest_framework import viewsets, permissions, serializers
 from django.utils import timezone
-from .models import User, Profile, UserSubscription
-from .serializers import UserSerializer, ProfileSerializer
+from .models import User, Profile, UserSubscription, Genre, Movie, TVShow, Content
+from .serializers import (
+    UserSerializer, ProfileSerializer, 
+    GenreSerializer, MovieSerializer, TVShowSerializer
+)
 
 
 class UserView(viewsets.ModelViewSet):
@@ -44,3 +47,58 @@ class ProfileView(viewsets.ModelViewSet):
             )
             
         serializer.save(user=user)
+
+
+class GenreViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Genre.objects.all().order_by('display_order', 'name')
+    serializer_class = GenreSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class MovieViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List and retrieve movies.
+    Filter by genre using ?genre=Action
+    """
+    serializer_class = MovieSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Content.objects.filter(content_type=Content.ContentType.MOVIE).select_related(
+            'movie_details', 'maturity_level'
+        ).prefetch_related(
+            'contentgenre_set__genre',
+            'contentcast_set__cast_member'
+        ).all()
+        
+        genre = self.request.query_params.get('genre')
+        if genre:
+            queryset = queryset.filter(contentgenre_set__genre__name__iexact=genre)
+            
+        return queryset
+
+
+class TVShowViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List and retrieve TV Shows.
+    Detailed view includes seasons and episodes.
+    """
+    serializer_class = TVShowSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Content.objects.filter(content_type=Content.ContentType.TV_SHOW).select_related(
+            'tv_show_details', 'maturity_level'
+        ).prefetch_related(
+            'contentgenre_set__genre',
+            'contentcast_set__cast_member',
+            'tv_show_details__seasons',
+            'tv_show_details__seasons__episodes',
+            'tv_show_details__seasons__episodes__content'
+        ).all()
+        
+        genre = self.request.query_params.get('genre')
+        if genre:
+            queryset = queryset.filter(contentgenre_set__genre__name__iexact=genre)
+            
+        return queryset
