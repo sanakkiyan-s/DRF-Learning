@@ -1,6 +1,7 @@
 from .views import (
     UserView, ProfileView, GenreViewSet, MovieViewSet, TVShowViewSet,
-    WatchHistoryViewSet, WatchProgressViewSet, RatingViewSet, ReviewViewSet, WatchlistViewSet
+    WatchHistoryViewSet, WatchProgressViewSet, RatingViewSet, ReviewViewSet, WatchlistViewSet,
+    DownloadViewSet
 )
 from .views_stripe import (
     StripeCheckoutView, StripeWebhookView, VerifyStripeSessionView, 
@@ -27,6 +28,7 @@ router.register('watch-progress', WatchProgressViewSet, basename='watch-progress
 router.register('ratings', RatingViewSet, basename='rating')
 router.register('reviews', ReviewViewSet, basename='review')
 router.register('watchlist', WatchlistViewSet, basename='watchlist')
+router.register('downloads', DownloadViewSet, basename='download')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -1,0 +1,2193 @@
+openapi: 3.0.3
+info:
+  title: Netflix Clone API
+  version: 1.0.0
+  description: Complete Netflix-like streaming platform API with subscription management,
+    device tracking, and content delivery
+paths:
+  /api/accounts/:
+    get:
+      operationId: accounts_list
+      description: |-
+        ViewSet for managing User accounts.
+        Provides CRUD operations for User model.
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+    post:
+      operationId: accounts_create
+      description: |-
+        ViewSet for managing User accounts.
+        Provides CRUD operations for User model.
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/accounts/{id}/:
+    get:
+      operationId: accounts_retrieve
+      description: |-
+        ViewSet for managing User accounts.
+        Provides CRUD operations for User model.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: accounts_update
+      description: |-
+        ViewSet for managing User accounts.
+        Provides CRUD operations for User model.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: accounts_partial_update
+      description: |-
+        ViewSet for managing User accounts.
+        Provides CRUD operations for User model.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: accounts_destroy
+      description: |-
+        ViewSet for managing User accounts.
+        Provides CRUD operations for User model.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        Custom login view that:
+        1. Parses device info from User-Agent header
+        2. Creates/updates Device record for the user
+        3. Returns device_id along with tokens
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeviceTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeviceTokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/downloads/:
+    get:
+      operationId: downloads_list
+      description: Manage offline downloads with subscription plan enforcement.
+      tags:
+      - downloads
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Download'
+          description: ''
+    post:
+      operationId: downloads_create
+      description: Manage offline downloads with subscription plan enforcement.
+      tags:
+      - downloads
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DownloadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DownloadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Download'
+          description: ''
+  /api/downloads/{id}/:
+    get:
+      operationId: downloads_retrieve
+      description: Manage offline downloads with subscription plan enforcement.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - downloads
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Download'
+          description: ''
+    delete:
+      operationId: downloads_destroy
+      description: Manage offline downloads with subscription plan enforcement.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - downloads
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/genres/:
+    get:
+      operationId: genres_list
+      tags:
+      - genres
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Genre'
+          description: ''
+  /api/genres/{id}/:
+    get:
+      operationId: genres_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this genre.
+        required: true
+      tags:
+      - genres
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+          description: ''
+  /api/movies/:
+    get:
+      operationId: movies_list
+      description: |-
+        List and retrieve movies.
+        Filter by genre using ?genre=Action
+      tags:
+      - movies
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Movie'
+          description: ''
+  /api/movies/{id}/:
+    get:
+      operationId: movies_retrieve
+      description: |-
+        List and retrieve movies.
+        Filter by genre using ?genre=Action
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content.
+        required: true
+      tags:
+      - movies
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movie'
+          description: ''
+  /api/payment/stripe/checkout/:
+    post:
+      operationId: payment_stripe_checkout_create
+      tags:
+      - payment
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/payment/stripe/verify-session/:
+    post:
+      operationId: payment_stripe_verify_session_create
+      tags:
+      - payment
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/payment/stripe/webhook/:
+    post:
+      operationId: payment_stripe_webhook_create
+      tags:
+      - payment
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/plans/:
+    get:
+      operationId: plans_list
+      tags:
+      - plans
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionPlan'
+          description: ''
+  /api/profile/select/:
+    post:
+      operationId: profile_select_create
+      description: |-
+        Select a profile to start streaming.
+        Checks concurrent stream limit before allowing.
+      tags:
+      - profile
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/profiles/:
+    get:
+      operationId: profiles_list
+      tags:
+      - profiles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+          description: ''
+    post:
+      operationId: profiles_create
+      tags:
+      - profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+  /api/profiles/{id}/:
+    get:
+      operationId: profiles_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - profiles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+    put:
+      operationId: profiles_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+    patch:
+      operationId: profiles_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+    delete:
+      operationId: profiles_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - profiles
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/ratings/:
+    get:
+      operationId: ratings_list
+      description: Rate content (1-5 stars).
+      tags:
+      - ratings
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rating'
+          description: ''
+    post:
+      operationId: ratings_create
+      description: Rate content (1-5 stars).
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RatingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RatingRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+          description: ''
+  /api/ratings/{id}/:
+    get:
+      operationId: ratings_retrieve
+      description: Rate content (1-5 stars).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+          description: ''
+    put:
+      operationId: ratings_update
+      description: Rate content (1-5 stars).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RatingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RatingRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+          description: ''
+    patch:
+      operationId: ratings_partial_update
+      description: Rate content (1-5 stars).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRatingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRatingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRatingRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+          description: ''
+    delete:
+      operationId: ratings_destroy
+      description: Rate content (1-5 stars).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/reviews/:
+    get:
+      operationId: reviews_list
+      description: Write and manage reviews.
+      tags:
+      - reviews
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+          description: ''
+    post:
+      operationId: reviews_create
+      description: Write and manage reviews.
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+  /api/reviews/{id}/:
+    get:
+      operationId: reviews_retrieve
+      description: Write and manage reviews.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - reviews
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    put:
+      operationId: reviews_update
+      description: Write and manage reviews.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    patch:
+      operationId: reviews_partial_update
+      description: Write and manage reviews.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReviewRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    delete:
+      operationId: reviews_destroy
+      description: Write and manage reviews.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - reviews
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/stream/active/:
+    get:
+      operationId: stream_active_retrieve
+      description: List all active streaming sessions for the user.
+      tags:
+      - stream
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/stream/logout/:
+    post:
+      operationId: stream_logout_create
+      description: End a streaming session to free up a slot.
+      tags:
+      - stream
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/subscription/billing-history/:
+    get:
+      operationId: subscription_billing_history_retrieve
+      description: View billing/payment history
+      tags:
+      - subscription
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/subscription/manage/:
+    get:
+      operationId: subscription_manage_retrieve
+      description: Get Stripe billing portal URL
+      tags:
+      - subscription
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: subscription_manage_create
+      description: Cancel or reactivate subscription
+      tags:
+      - subscription
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/subscription/status/:
+    get:
+      operationId: subscription_status_retrieve
+      description: Netflix-like subscription status with streaming permissions
+      tags:
+      - subscription
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/tv-shows/:
+    get:
+      operationId: tv_shows_list
+      description: |-
+        List and retrieve TV Shows.
+        Detailed view includes seasons and episodes.
+      tags:
+      - tv-shows
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TVShow'
+          description: ''
+  /api/tv-shows/{id}/:
+    get:
+      operationId: tv_shows_retrieve
+      description: |-
+        List and retrieve TV Shows.
+        Detailed view includes seasons and episodes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content.
+        required: true
+      tags:
+      - tv-shows
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TVShow'
+          description: ''
+  /api/watch-history/:
+    get:
+      operationId: watch_history_list
+      description: Track what the profile has watched.
+      tags:
+      - watch-history
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchHistory'
+          description: ''
+    post:
+      operationId: watch_history_create
+      description: Track what the profile has watched.
+      tags:
+      - watch-history
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchHistoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WatchHistoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WatchHistoryRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchHistory'
+          description: ''
+  /api/watch-history/{id}/:
+    get:
+      operationId: watch_history_retrieve
+      description: Track what the profile has watched.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - watch-history
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchHistory'
+          description: ''
+  /api/watch-progress/:
+    get:
+      operationId: watch_progress_list
+      description: Resume playback - Continue Watching feature.
+      tags:
+      - watch-progress
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchProgress'
+          description: ''
+    post:
+      operationId: watch_progress_create
+      description: Resume playback - Continue Watching feature.
+      tags:
+      - watch-progress
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchProgressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WatchProgressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WatchProgressRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProgress'
+          description: ''
+  /api/watch-progress/{content_id}/:
+    get:
+      operationId: watch_progress_retrieve
+      description: Resume playback - Continue Watching feature.
+      parameters:
+      - in: path
+        name: content_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - watch-progress
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProgress'
+          description: ''
+    put:
+      operationId: watch_progress_update
+      description: Resume playback - Continue Watching feature.
+      parameters:
+      - in: path
+        name: content_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - watch-progress
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchProgressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WatchProgressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WatchProgressRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProgress'
+          description: ''
+    patch:
+      operationId: watch_progress_partial_update
+      description: Resume playback - Continue Watching feature.
+      parameters:
+      - in: path
+        name: content_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - watch-progress
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWatchProgressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWatchProgressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWatchProgressRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchProgress'
+          description: ''
+  /api/watchlist/:
+    get:
+      operationId: watchlist_list
+      description: Manage watchlist (add/remove content to watch later).
+      tags:
+      - watchlist
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Watchlist'
+          description: ''
+    post:
+      operationId: watchlist_create
+      description: Manage watchlist (add/remove content to watch later).
+      tags:
+      - watchlist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchlistRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WatchlistRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WatchlistRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Watchlist'
+          description: ''
+  /api/watchlist/{id}/:
+    get:
+      operationId: watchlist_retrieve
+      description: Manage watchlist (add/remove content to watch later).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - watchlist
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Watchlist'
+          description: ''
+    delete:
+      operationId: watchlist_destroy
+      description: Manage watchlist (add/remove content to watch later).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - watchlist
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    ContentCast:
+      type: object
+      properties:
+        name:
+          type: string
+        profile_image_url:
+          type: string
+          format: uri
+        character_name:
+          type: string
+          nullable: true
+          maxLength: 255
+        role_type:
+          type: string
+          maxLength: 50
+        billing_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+      required:
+      - name
+      - profile_image_url
+    ContentMini:
+      type: object
+      description: Lightweight Content serializer for embedding in interaction responses.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 500
+        poster_image_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        content_type:
+          $ref: '#/components/schemas/ContentTypeEnum'
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+      required:
+      - content_type
+      - id
+      - title
+    ContentMiniRequest:
+      type: object
+      description: Lightweight Content serializer for embedding in interaction responses.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        poster_image_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        content_type:
+          $ref: '#/components/schemas/ContentTypeEnum'
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+      required:
+      - content_type
+      - title
+    ContentTypeEnum:
+      enum:
+      - movie
+      - tv_show
+      type: string
+      description: |-
+        * `movie` - Movie
+        * `tv_show` - TV Show
+    DeviceTokenObtainPairRequest:
+      type: object
+      description: Custom serializer that includes device_id in the token.
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    Download:
+      type: object
+      description: Serializer for listing downloads.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        content:
+          allOf:
+          - $ref: '#/components/schemas/ContentMini'
+          readOnly: true
+        device_name:
+          type: string
+          readOnly: true
+        video_quality:
+          $ref: '#/components/schemas/VideoQualityEnum'
+        file_size_bytes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        download_status:
+          $ref: '#/components/schemas/DownloadStatusEnum'
+        progress_percentage:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        downloaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - content
+      - device_name
+      - downloaded_at
+      - expires_at
+      - id
+      - video_quality
+    DownloadRequest:
+      type: object
+      description: Serializer for listing downloads.
+      properties:
+        video_quality:
+          $ref: '#/components/schemas/VideoQualityEnum'
+        file_size_bytes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        download_status:
+          $ref: '#/components/schemas/DownloadStatusEnum'
+        progress_percentage:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - expires_at
+      - video_quality
+    DownloadStatusEnum:
+      enum:
+      - pending
+      - downloading
+      - completed
+      - expired
+      - failed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `downloading` - Downloading
+        * `completed` - Completed
+        * `expired` - Expired
+        * `failed` - Failed
+    Episode:
+      type: object
+      properties:
+        episode_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        duration_minutes:
+          type: integer
+      required:
+      - description
+      - duration_minutes
+      - episode_number
+      - title
+    Genre:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+      required:
+      - id
+      - name
+    MaturityLevel:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 10
+        name:
+          type: string
+          maxLength: 50
+        minimum_age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+      required:
+      - code
+      - minimum_age
+      - name
+    Movie:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+          nullable: true
+        content_type:
+          $ref: '#/components/schemas/ContentTypeEnum'
+        release_date:
+          type: string
+          format: date
+          nullable: true
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        poster_image_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        backdrop_image_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        trailer_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        maturity_level:
+          allOf:
+          - $ref: '#/components/schemas/MaturityLevel'
+          readOnly: true
+        genres:
+          type: string
+          readOnly: true
+        cast:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentCast'
+          readOnly: true
+        director:
+          type: string
+      required:
+      - cast
+      - content_type
+      - director
+      - genres
+      - id
+      - maturity_level
+      - title
+    PatchedProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        language_code:
+          type: string
+          minLength: 1
+          maxLength: 2
+        is_kid_profile:
+          type: boolean
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+    PatchedRatingRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        rating_value:
+          type: integer
+          maximum: 5
+          minimum: 1
+    PatchedReviewRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        title:
+          type: string
+          nullable: true
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+        contains_spoilers:
+          type: boolean
+    PatchedUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 255
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 255
+        country_code:
+          type: string
+          minLength: 1
+          maxLength: 2
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 20
+    PatchedWatchProgressRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        resume_time_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        language_code:
+          type: string
+          maxLength: 2
+        is_kid_profile:
+          type: boolean
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+      required:
+      - age
+      - id
+      - name
+    ProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        language_code:
+          type: string
+          minLength: 1
+          maxLength: 2
+        is_kid_profile:
+          type: boolean
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+      required:
+      - age
+      - name
+    Rating:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        content_title:
+          type: string
+          readOnly: true
+        rating_value:
+          type: integer
+          maximum: 5
+          minimum: 1
+        rated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content_title
+      - id
+      - rated_at
+      - rating_value
+    RatingRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        rating_value:
+          type: integer
+          maximum: 5
+          minimum: 1
+      required:
+      - content_id
+      - rating_value
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        content_title:
+          type: string
+          readOnly: true
+        profile_name:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          nullable: true
+          maxLength: 200
+        body:
+          type: string
+        contains_spoilers:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - body
+      - content_title
+      - created_at
+      - id
+      - profile_name
+      - updated_at
+    ReviewRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        title:
+          type: string
+          nullable: true
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+        contains_spoilers:
+          type: boolean
+      required:
+      - body
+      - content_id
+    Season:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        season_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        release_date:
+          type: string
+          format: date
+          nullable: true
+        episodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Episode'
+          readOnly: true
+      required:
+      - episodes
+      - id
+      - season_number
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        description:
+          type: string
+          nullable: true
+        price_monthly:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        price_yearly:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        max_concurrent_streams:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        max_profiles:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        supports_uhd:
+          type: boolean
+        supports_hdr:
+          type: boolean
+        supports_dolby_atmos:
+          type: boolean
+        allows_downloads:
+          type: boolean
+        max_download_devices:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        display_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        is_active:
+          type: boolean
+        stripe_product_id:
+          type: string
+          nullable: true
+          maxLength: 100
+        stripe_price_id_monthly:
+          type: string
+          nullable: true
+          maxLength: 100
+        stripe_price_id_yearly:
+          type: string
+          nullable: true
+          maxLength: 100
+        trial_days:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: Number of free trial days (0 = no trial)
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - price_monthly
+      - updated_at
+    TVShow:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+          nullable: true
+        content_type:
+          $ref: '#/components/schemas/ContentTypeEnum'
+        release_date:
+          type: string
+          format: date
+          nullable: true
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        poster_image_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        backdrop_image_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        trailer_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 500
+        maturity_level:
+          allOf:
+          - $ref: '#/components/schemas/MaturityLevel'
+          readOnly: true
+        genres:
+          type: string
+          readOnly: true
+        cast:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentCast'
+          readOnly: true
+        total_seasons:
+          type: integer
+        total_episodes:
+          type: integer
+        status:
+          type: string
+        seasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Season'
+          readOnly: true
+      required:
+      - cast
+      - content_type
+      - genres
+      - id
+      - maturity_level
+      - seasons
+      - status
+      - title
+      - total_episodes
+      - total_seasons
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        country_code:
+          type: string
+          maxLength: 2
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 20
+      required:
+      - country_code
+      - email
+      - id
+    UserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 255
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 255
+        country_code:
+          type: string
+          minLength: 1
+          maxLength: 2
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 20
+      required:
+      - country_code
+      - email
+      - password
+    VideoQualityEnum:
+      enum:
+      - SD
+      - HD
+      - FHD
+      - UHD
+      type: string
+      description: |-
+        * `SD` - Standard Definition
+        * `HD` - High Definition
+        * `FHD` - Full HD
+        * `UHD` - Ultra HD
+    WatchHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        content:
+          allOf:
+          - $ref: '#/components/schemas/ContentMini'
+          readOnly: true
+        watch_started_at:
+          type: string
+          format: date-time
+        watch_ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        watched_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        start_position_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        end_position_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+      required:
+      - content
+      - id
+      - watch_started_at
+    WatchHistoryRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        watch_started_at:
+          type: string
+          format: date-time
+        watch_ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        watched_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        start_position_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        end_position_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+      required:
+      - content_id
+      - watch_started_at
+    WatchProgress:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        content:
+          allOf:
+          - $ref: '#/components/schemas/ContentMini'
+          readOnly: true
+        resume_time_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        last_watched_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content
+      - id
+      - last_watched_at
+    WatchProgressRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        resume_time_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+      required:
+      - content_id
+    Watchlist:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        content:
+          allOf:
+          - $ref: '#/components/schemas/ContentMini'
+          readOnly: true
+        is_in_watchlist:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content
+      - created_at
+      - id
+    WatchlistRequest:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        is_in_watchlist:
+          type: boolean
+      required:
+      - content_id
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

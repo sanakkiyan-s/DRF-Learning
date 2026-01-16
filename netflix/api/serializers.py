@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import (
     User, SubscriptionPlan, BillingHistory, UserSubscription, Profile,
     MaturityLevel, Genre, Content, Movie, TVShow, Season, Episode, ContentGenre,
-    CastMember, ContentCast, WatchHistory, WatchProgress, Rating, Review, UserContentInteraction
+    CastMember, ContentCast, WatchHistory, WatchProgress, Rating, Review, UserContentInteraction,
+    Download, Device
 )
 
 
@@ -196,3 +197,25 @@ class WatchlistSerializer(serializers.ModelSerializer):
         model = UserContentInteraction
         fields = ['id', 'content', 'content_id', 'is_in_watchlist', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+# ==================== DOWNLOAD SERIALIZERS ====================
+class DownloadSerializer(serializers.ModelSerializer):
+    """Serializer for listing downloads."""
+    content = ContentMiniSerializer(read_only=True)
+    device_name = serializers.CharField(source='device.device_name', read_only=True)
+    
+    class Meta:
+        model = Download
+        fields = [
+            'id', 'content', 'device_name', 'video_quality', 'file_size_bytes',
+            'download_status', 'progress_percentage', 'downloaded_at', 'expires_at'
+        ]
+        read_only_fields = ['id', 'downloaded_at']
+
+
+class DownloadCreateSerializer(serializers.Serializer):
+    """Serializer for creating downloads with validation."""
+    content_id = serializers.UUIDField()
+    device_id = serializers.UUIDField()
+    video_quality = serializers.ChoiceField(choices=Download.VideoQuality.choices)
