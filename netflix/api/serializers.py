@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     User, SubscriptionPlan, BillingHistory, UserSubscription, Profile,
     MaturityLevel, Genre, Content, Movie, TVShow, Season, Episode, ContentGenre,
-    CastMember, ContentCast
+    CastMember, ContentCast, WatchHistory, WatchProgress, Rating, Review, UserContentInteraction
 )
 
 
@@ -131,3 +131,68 @@ class TVShowSerializer(ContentSerializer):
     
     class Meta(ContentSerializer.Meta):
         fields = ContentSerializer.Meta.fields + ['total_seasons', 'total_episodes', 'status', 'seasons']
+
+
+# ==================== USER INTERACTION SERIALIZERS ====================
+class ContentMiniSerializer(serializers.ModelSerializer):
+    """Lightweight Content serializer for embedding in interaction responses."""
+    class Meta:
+        model = Content
+        fields = ['id', 'title', 'poster_image_url', 'content_type', 'duration_minutes']
+
+
+class WatchHistorySerializer(serializers.ModelSerializer):
+    content = ContentMiniSerializer(read_only=True)
+    content_id = serializers.UUIDField(write_only=True)
+    
+    class Meta:
+        model = WatchHistory
+        fields = [
+            'id', 'content', 'content_id', 'watch_started_at', 'watch_ended_at',
+            'watched_seconds', 'start_position_seconds', 'end_position_seconds'
+        ]
+        read_only_fields = ['id']
+
+
+class WatchProgressSerializer(serializers.ModelSerializer):
+    content = ContentMiniSerializer(read_only=True)
+    content_id = serializers.UUIDField(write_only=True)
+    
+    class Meta:
+        model = WatchProgress
+        fields = ['id', 'content', 'content_id', 'resume_time_seconds', 'last_watched_at']
+        read_only_fields = ['id', 'last_watched_at']
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    content_id = serializers.UUIDField(write_only=True)
+    content_title = serializers.CharField(source='content.title', read_only=True)
+    
+    class Meta:
+        model = Rating
+        fields = ['id', 'content_id', 'content_title', 'rating_value', 'rated_at']
+        read_only_fields = ['id', 'rated_at']
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    content_id = serializers.UUIDField(write_only=True)
+    content_title = serializers.CharField(source='content.title', read_only=True)
+    profile_name = serializers.CharField(source='profile.name', read_only=True)
+    
+    class Meta:
+        model = Review
+        fields = [
+            'id', 'content_id', 'content_title', 'profile_name',
+            'title', 'body', 'contains_spoilers', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class WatchlistSerializer(serializers.ModelSerializer):
+    content = ContentMiniSerializer(read_only=True)
+    content_id = serializers.UUIDField(write_only=True)
+    
+    class Meta:
+        model = UserContentInteraction
+        fields = ['id', 'content', 'content_id', 'is_in_watchlist', 'created_at']
+        read_only_fields = ['id', 'created_at']

@@ -540,6 +540,8 @@ class StripeWebhookView(APIView):
 
     def handle_subscription_updated(self, subscription):
         subscription_id = subscription.get('id')
+        print(f"DEBUG: Webhook Update Entry {subscription_id}. Status: {subscription.get('status')}, CancelAtEnd: {subscription.get('cancel_at_period_end')}") # DEBUG LINE
+        
         try:
             sub = UserSubscription.objects.get(stripe_subscription_id=subscription_id)
             
@@ -553,8 +555,18 @@ class StripeWebhookView(APIView):
                 'incomplete_expired': UserSubscription.SubscriptionStatus.EXPIRED
             }
             
+            print(f"DEBUG: Webhook Update {subscription_id}. Status: {subscription.get('status')}, CancelAtEnd: {subscription.get('cancel_at_period_end')}") # DEBUG LINE
+            
             sub.status = status_map.get(subscription.get('status'), UserSubscription.SubscriptionStatus.PENDING)
-            sub.cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+        
+            # Check both boolean and timestamp for cancellation
+            cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+            cancel_at = subscription.get('cancel_at')
+            if cancel_at and not cancel_at_period_end:
+                # If there's a specific cancel date in the future, treat as cancelling
+                 cancel_at_period_end = True
+                 
+            sub.cancel_at_period_end = cancel_at_period_end
             
             cpe = subscription.get('current_period_end')
             cps = subscription.get('current_period_start')

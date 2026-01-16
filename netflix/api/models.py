@@ -172,7 +172,7 @@ class UserSubscription(models.Model):
     # Payment Info
     payment_method_last_four = models.CharField(max_length=4, blank=True, null=True)
     payment_method_type = models.CharField(max_length=20, blank=True, null=True)
-    stripe_subscription_id = models.CharField(max_length=100, blank=True, null=True)
+    stripe_subscription_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     razorpay_subscription_id = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

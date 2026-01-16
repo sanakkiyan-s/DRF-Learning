@@ -1,10 +1,17 @@
 from rest_framework import viewsets, permissions, serializers
 from django.utils import timezone
-from .models import User, Profile, UserSubscription, Genre, Movie, TVShow, Content
+from .models import (
+    User, Profile, UserSubscription, Genre, Movie, TVShow, Content,
+    WatchHistory, WatchProgress, Rating, Review, UserContentInteraction
+)
 from .serializers import (
     UserSerializer, ProfileSerializer, 
-    GenreSerializer, MovieSerializer, TVShowSerializer
+    GenreSerializer, MovieSerializer, TVShowSerializer,
+    WatchHistorySerializer, WatchProgressSerializer, RatingSerializer,
+    ReviewSerializer, WatchlistSerializer
 )
+from rest_framework.response import Response
+from rest_framework import status
 
 
 class UserView(viewsets.ModelViewSet):
@@ -102,3 +109,138 @@ class TVShowViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(contentgenre_set__genre__name__iexact=genre)
             
         return queryset
+
+
+# ==================== USER INTERACTION VIEWSETS ====================
+class ProfileMixin:
+    """Mixin to get the active profile from request headers."""
+    def get_profile(self):
+        profile_id = self.request.headers.get('X-Profile-ID')
+        if not profile_id:
+            raise serializers.ValidationError("X-Profile-ID header is required.")
+        try:
+            return Profile.objects.get(id=profile_id, user=self.request.user)
+        except Profile.DoesNotExist:
+            raise serializers.ValidationError("Invalid profile.")
+
+
+class WatchHistoryViewSet(ProfileMixin, viewsets.ModelViewSet):
+    """Track what the profile has watched."""
+    serializer_class = WatchHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'head']
+
+    def get_queryset(self):
+        profile = self.get_profile()
+        return WatchHistory.objects.filter(profile=profile).select_related('content')
+
+    def perform_create(self, serializer):
+        profile = self.get_profile()
+        content = Content.objects.get(id=serializer.validated_data['content_id'])
+        serializer.save(profile=profile, content=content)
+
+
+class WatchProgressViewSet(ProfileMixin, viewsets.ModelViewSet):
+    """Resume playback - Continue Watching feature."""
+    serializer_class = WatchProgressSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'patch', 'head']
+    lookup_field = 'content_id'
+
+    def get_queryset(self):
+        profile = self.get_profile()
+        return WatchProgress.objects.filter(profile=profile).select_related('content')
+
+    def perform_create(self, serializer):
+        profile = self.get_profile()
+        content = Content.objects.get(id=serializer.validated_data['content_id'])
+        # Use update_or_create for upsert
+        obj, created = WatchProgress.objects.update_or_create(
+            profile=profile,
+            content=content,
+            defaults={'resume_time_seconds': serializer.validated_data['resume_time_seconds']}
+        )
+        return obj
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        obj = self.perform_create(serializer)
+        return Response(WatchProgressSerializer(obj).data, status=status.HTTP_200_OK)
+
+
+class RatingViewSet(ProfileMixin, viewsets.ModelViewSet):
+    """Rate content (1-5 stars)."""
+    serializer_class = RatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        profile = self.get_profile()
+        return Rating.objects.filter(profile=profile).select_related('content')
+
+    def perform_create(self, serializer):
+        profile = self.get_profile()
+        content = Content.objects.get(id=serializer.validated_data['content_id'])
+        # Upsert rating
+        obj, created = Rating.objects.update_or_create(
+            profile=profile,
+            content=content,
+            defaults={'rating_value': serializer.validated_data['rating_value']}
+        )
+        return obj
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        obj = self.perform_create(serializer)
+        return Response(RatingSerializer(obj).data, status=status.HTTP_200_OK)
+
+
+class ReviewViewSet(ProfileMixin, viewsets.ModelViewSet):
+    """Write and manage reviews."""
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        profile = self.get_profile()
+        return Review.objects.filter(profile=profile).select_related('content', 'profile')
+
+    def perform_create(self, serializer):
+        profile = self.get_profile()
+        content = Content.objects.get(id=serializer.validated_data['content_id'])
+        serializer.save(profile=profile, content=content)
+
+
+class WatchlistViewSet(ProfileMixin, viewsets.ModelViewSet):
+    """Manage watchlist (add/remove content to watch later)."""
+    serializer_class = WatchlistSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'delete', 'head']
+
+    def get_queryset(self):
+        profile = self.get_profile()
+        return UserContentInteraction.objects.filter(
+            profile=profile, is_in_watchlist=True
+        ).select_related('content')
+
+    def perform_create(self, serializer):
+        profile = self.get_profile()
+        content = Content.objects.get(id=serializer.validated_data['content_id'])
+        obj, created = UserContentInteraction.objects.update_or_create(
+            profile=profile,
+            content=content,
+            defaults={'is_in_watchlist': True}
+        )
+        return obj
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        obj = self.perform_create(serializer)
+        return Response(WatchlistSerializer(obj).data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_in_watchlist = False
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
