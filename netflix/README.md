@@ -46,7 +46,10 @@ sequenceDiagram
 ## Setup
 
 1.  **Install Dependencies**
-    ```bash
+    ```powershell
+    # Activate virtual environment
+    .\venv_win\Scripts\activate
+
     pip install -r requirements.txt
     ```
 
@@ -81,26 +84,29 @@ sequenceDiagram
 
 ## Running the Application
 
-You need **3 separate terminal tabs** running in parallel:
+You need **3 separate terminal tabs** running in parallel.
+
+> **Note:** Remember to activate the virtual environment (`.\venv_win\Scripts\activate`) and `cd netflix` in each new tab.
 
 ### 1. Django Server
 Host the API and Webhooks.
-```bash
-cd netflix
+```powershell
+# Run migrations first
+python manage.py migrate
+
 python manage.py runserver
 ```
 
 ### 2. Celery Worker
 Process background emails.
-```bash
-cd netflix
-celery -A netflix worker -l info
+*Use `--pool=solo` on Windows to avoid issues.*
+```powershell
+celery -A netflix worker -l info --pool=solo
 ```
 
 ### 3. Celery Beat
 Schedule periodic tasks (trial checks, expiry).
-```bash
-cd netflix
+```powershell
 celery -A netflix beat -l info
 ```
 

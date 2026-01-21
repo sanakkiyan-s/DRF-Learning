@@ -7,6 +7,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import Device, DeviceLogin, Profile, UserSubscription
 from .device_utils import get_device_info, get_client_ip
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, inline_serializer, OpenApiExample
 
 
 class DeviceTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -32,6 +33,19 @@ class DeviceTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
 
+@extend_schema(tags=['02. Login'])
+@extend_schema(
+    examples=[
+        OpenApiExample(
+            'Device Login',
+            value={
+                "email": "user@example.com",
+                "password": "password123",
+            },
+            request_only=True
+        )
+    ]
+)
 class DeviceTokenObtainPairView(TokenObtainPairView):
     """
     Custom login view that:
@@ -84,6 +98,20 @@ from rest_framework.response import Response
 from rest_framework import status
 
 
+@extend_schema(tags=['04. Profiles'])
+@extend_schema(
+    request=inline_serializer(
+        name='ProfileSelectRequest',
+        fields={'profile_id': serializers.UUIDField()}
+    ),
+    examples=[
+        OpenApiExample(
+            'Select Profile',
+            value={'profile_id': '11111111-2222-3333-4444-555555555555'},
+            request_only=True
+        )
+    ]
+)
 class ProfileSelectView(APIView):
     """
     Select a profile to start streaming.
@@ -91,6 +119,23 @@ class ProfileSelectView(APIView):
     """
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='X-Device-ID',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                description='Device ID obtained from login',
+                required=True
+            )
+        ],
+        request=inline_serializer(
+            name='ProfileSelectRequest',
+            fields={
+                'profile_id': serializers.UUIDField()
+            }
+        )
+    )
     def post(self, request):
         profile_id = request.data.get('profile_id')
         device_id = request.headers.get('X-Device-ID')
@@ -183,10 +228,51 @@ class ProfileSelectView(APIView):
         })
 
 
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    Refresh access token.
+    """
+    @extend_schema(tags=['02. Login'])
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+@extend_schema(tags=['08. Streaming'])
+@extend_schema(
+    request=inline_serializer(
+        name='StreamLogoutRequest',
+        fields={'session_id': serializers.CharField()}
+    ),
+    examples=[
+        OpenApiExample(
+            'Logout Stream',
+            value={'session_id': 'session_123abc'},
+            request_only=True
+        )
+    ]
+)
 class StreamLogoutView(APIView):
     """End a streaming session to free up a slot."""
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='X-Device-ID',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                description='Device ID (optional if session_id provided)',
+                required=False
+            )
+        ],
+        request=inline_serializer(
+            name='StreamLogoutRequest',
+            fields={
+                'session_id': serializers.UUIDField(required=False)
+            }
+        )
+    )
     def post(self, request):
         session_id = request.data.get('session_id')
         device_id = request.headers.get('X-Device-ID')
@@ -226,6 +312,7 @@ class StreamLogoutView(APIView):
         )
 
 
+@extend_schema(tags=['08. Streaming'])
 class ActiveStreamsView(APIView):
     """List all active streaming sessions for the user."""
     permission_classes = [IsAuthenticated]

@@ -13,8 +13,25 @@ from .serializers import (
 )
 from rest_framework.response import Response
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, inline_serializer, extend_schema_view, OpenApiExample
 
 
+@extend_schema(tags=['01. Accounts'])
+@extend_schema(
+    examples=[
+        OpenApiExample(
+            'Create User',
+            value={
+                "email": "user@example.com",
+                "password": "strongpassword123",
+                "country_code": "US",
+                "phone_number": "+15550109988"
+            },
+            request_only=True,
+            description="Register a new user account"
+        )
+    ]
+)
 class UserView(viewsets.ModelViewSet):
     """
     ViewSet for managing User accounts.
@@ -24,6 +41,22 @@ class UserView(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
 
+@extend_schema(tags=['04. Profiles'])
+@extend_schema(
+    examples=[
+        OpenApiExample(
+            'Create Profile',
+            value={
+                "name": "Kids Profile",
+                "avatar_url": "https://example.com/avatar.png",
+                "language_code": "en",
+                "is_kid_profile": True,
+                "age": 10
+            },
+            request_only=True
+        )
+    ]
+)
 class ProfileView(viewsets.ModelViewSet):
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -57,12 +90,14 @@ class ProfileView(viewsets.ModelViewSet):
         serializer.save(user=user)
 
 
+@extend_schema(tags=['05. Content'])
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Genre.objects.all().order_by('display_order', 'name')
     serializer_class = GenreSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
+@extend_schema(tags=['05. Content'])
 class MovieViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List and retrieve movies.
@@ -86,6 +121,7 @@ class MovieViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
+@extend_schema(tags=['05. Content'])
 class TVShowViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List and retrieve TV Shows.
@@ -125,6 +161,24 @@ class ProfileMixin:
             raise serializers.ValidationError("Invalid profile.")
 
 
+@extend_schema(tags=['06. User Interactions'])
+@extend_schema(
+    parameters=[OpenApiParameter(name='X-Profile-ID', type=OpenApiTypes.STR, location=OpenApiParameter.HEADER, description='Active Profile ID', required=True)],
+    examples=[
+        OpenApiExample(
+            'Valid Watch History',
+            value={
+                "content_id": "096c488b-e5ec-4747-8429-9b5426797723",
+                "watch_started_at": "2026-01-21T12:00:00Z",
+                "watch_ended_at": "2026-01-21T12:45:00Z",
+                "watched_seconds": 2700,
+                "start_position_seconds": 0,
+                "end_position_seconds": 2700
+            },
+            request_only=True
+        )
+    ]
+)
 class WatchHistoryViewSet(ProfileMixin, viewsets.ModelViewSet):
     """Track what the profile has watched."""
     serializer_class = WatchHistorySerializer
@@ -141,6 +195,20 @@ class WatchHistoryViewSet(ProfileMixin, viewsets.ModelViewSet):
         serializer.save(profile=profile, content=content)
 
 
+@extend_schema(tags=['06. User Interactions'])
+@extend_schema(
+    parameters=[OpenApiParameter(name='X-Profile-ID', type=OpenApiTypes.STR, location=OpenApiParameter.HEADER, description='Active Profile ID', required=True)],
+    examples=[
+        OpenApiExample(
+            'Update Watch Progress',
+            value={
+                "content_id": "096c488b-e5ec-4747-8429-9b5426797723",
+                "resume_time_seconds": 1500
+            },
+            request_only=True
+        )
+    ]
+)
 class WatchProgressViewSet(ProfileMixin, viewsets.ModelViewSet):
     """Resume playback - Continue Watching feature."""
     serializer_class = WatchProgressSerializer
@@ -170,6 +238,26 @@ class WatchProgressViewSet(ProfileMixin, viewsets.ModelViewSet):
         return Response(WatchProgressSerializer(obj).data, status=status.HTTP_200_OK)
 
 
+@extend_schema(parameters=[OpenApiParameter(name='X-Profile-ID', type=OpenApiTypes.STR, location=OpenApiParameter.HEADER, description='Active Profile ID', required=True)])
+@extend_schema_view(
+    retrieve=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='UUID of the Rating object to retrieve')]),
+    update=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='UUID of the Rating object to update')]),
+    partial_update=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='UUID of the Rating object to partially update')]),
+    destroy=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='UUID of the Rating object to delete')])
+)
+@extend_schema(tags=['06. User Interactions'])
+@extend_schema(
+    examples=[
+        OpenApiExample(
+            'Rate Content',
+            value={
+                "content_id": "096c488b-e5ec-4747-8429-9b5426797723",
+                "rating_value": 5
+            },
+            request_only=True
+        )
+    ]
+)
 class RatingViewSet(ProfileMixin, viewsets.ModelViewSet):
     """Rate content (1-5 stars)."""
     serializer_class = RatingSerializer
@@ -193,10 +281,41 @@ class RatingViewSet(ProfileMixin, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        # Validate content existence
+        content_id = serializer.validated_data.get('content_id')
+        if not Content.objects.filter(id=content_id).exists():
+            return Response(
+                {"error": "Content not found with the provided ID."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         obj = self.perform_create(serializer)
         return Response(RatingSerializer(obj).data, status=status.HTTP_200_OK)
 
 
+@extend_schema(parameters=[OpenApiParameter(name='X-Profile-ID', type=OpenApiTypes.STR, location=OpenApiParameter.HEADER, description='Active Profile ID', required=True)])
+@extend_schema_view(
+    retrieve=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.UUID, location=OpenApiParameter.PATH, description='UUID of the Review object to retrieve')]),
+    update=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.UUID, location=OpenApiParameter.PATH, description='UUID of the Review object to update')]),
+    partial_update=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.UUID, location=OpenApiParameter.PATH, description='UUID of the Review object to partially update')]),
+    destroy=extend_schema(parameters=[OpenApiParameter(name='id', type=OpenApiTypes.UUID, location=OpenApiParameter.PATH, description='UUID of the Review object to delete')])
+)
+@extend_schema(tags=['06. User Interactions'])
+@extend_schema(
+    examples=[
+        OpenApiExample(
+            'Write Review',
+            value={
+                "content_id": "096c488b-e5ec-4747-8429-9b5426797723",
+                "title": "Mind-blowing Series!",
+                "body": "The plot twists were insane. Highly recommended!",
+                "contains_spoilers": False
+            },
+            request_only=True
+        )
+    ]
+)
 class ReviewViewSet(ProfileMixin, viewsets.ModelViewSet):
     """Write and manage reviews."""
     serializer_class = ReviewSerializer
@@ -211,7 +330,35 @@ class ReviewViewSet(ProfileMixin, viewsets.ModelViewSet):
         content = Content.objects.get(id=serializer.validated_data['content_id'])
         serializer.save(profile=profile, content=content)
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        content_id = serializer.validated_data.get('content_id')
+        if not Content.objects.filter(id=content_id).exists():
+            return Response(
+                {"error": "Content not found with the provided ID."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+@extend_schema(tags=['06. User Interactions'])
+@extend_schema(
+    parameters=[OpenApiParameter(name='X-Profile-ID', type=OpenApiTypes.STR, location=OpenApiParameter.HEADER, description='Active Profile ID', required=True)],
+    examples=[
+        OpenApiExample(
+            'Add to Watchlist',
+            value={
+                "content_id": "096c488b-e5ec-4747-8429-9b5426797723"
+            },
+            request_only=True
+        )
+    ]
+)
 class WatchlistViewSet(ProfileMixin, viewsets.ModelViewSet):
     """Manage watchlist (add/remove content to watch later)."""
     serializer_class = WatchlistSerializer
@@ -248,6 +395,21 @@ class WatchlistViewSet(ProfileMixin, viewsets.ModelViewSet):
 
 
 # ==================== DOWNLOAD VIEWSET ====================
+@extend_schema(tags=['07. Downloads'])
+@extend_schema(
+    parameters=[OpenApiParameter(name='X-Profile-ID', type=OpenApiTypes.STR, location=OpenApiParameter.HEADER, description='Active Profile ID', required=True)],
+    examples=[
+        OpenApiExample(
+            'Start Download',
+            value={
+                "content_id": "096c488b-e5ec-4747-8429-9b5426797723",
+                "device_id": "aa11bb22-cc33-dd44-ee55-ff6677889900",
+                "video_quality": "High"
+            },
+            request_only=True
+        )
+    ]
+)
 class DownloadViewSet(ProfileMixin, viewsets.ModelViewSet):
     """Manage offline downloads with subscription plan enforcement."""
     serializer_class = DownloadSerializer

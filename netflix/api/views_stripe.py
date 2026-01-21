@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
+from rest_framework import status, serializers
 from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.contrib.auth import get_user_model
@@ -23,6 +23,7 @@ from .models import UserSubscription, SubscriptionPlan, BillingHistory, StripeEv
 from .serializers import SubscriptionPlanSerializer
 from rest_framework import generics
 from .tasks import send_email_async
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, inline_serializer, OpenApiExample
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +31,14 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+@extend_schema(tags=['03. Subscription'])
 class SubscriptionPlanListView(generics.ListAPIView):
     queryset = SubscriptionPlan.objects.filter(is_active=True).order_by('display_order')
     serializer_class = SubscriptionPlanSerializer
     permission_classes = [IsAuthenticated]
 
 
+@extend_schema(tags=['03. Subscription'])
 class SubscriptionStatusView(APIView):
     """Netflix-like subscription status with streaming permissions"""
     permission_classes = [IsAuthenticated]
@@ -186,9 +189,40 @@ def create_stripe_checkout_session(user, plan_id, interval='monthly'):
     return checkout_session
 
 
+@extend_schema(tags=['03. Subscription'])
 class StripeCheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(tags=['03. Subscription'])
+    @extend_schema(
+        request=inline_serializer(
+            name='StripeCheckoutRequest',
+            fields={
+                'plan_id': serializers.UUIDField(),
+                'interval': serializers.ChoiceField(choices=['monthly', 'yearly'], default='monthly')
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name='StripeCheckoutResponse',
+                fields={
+                    'checkout_url': serializers.URLField(),
+                    'session_id': serializers.CharField()
+                }
+            )
+        },
+        description="Create a Stripe checkout session for subscription",
+        examples=[
+            OpenApiExample(
+                'Monthly Checkout',
+                value={
+                    "plan_id": "15fd2e9f-ee45-4cdd-afda-7f5a89aded21",
+                    "interval": "monthly"
+                },
+                request_only=True
+            )
+        ]
+    )
     def post(self, request):
         try:
             user = request.user
@@ -223,6 +257,7 @@ class StripeCheckoutView(APIView):
             return Response({'error': 'Checkout failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@extend_schema(tags=['03. Subscription'])
 class ManageSubscriptionView(APIView):
     """Manage subscription: cancel, reactivate, access portal"""
     permission_classes = [IsAuthenticated]
@@ -244,6 +279,29 @@ class ManageSubscriptionView(APIView):
             logger.error(f"Stripe portal error: {e}")
             return Response({'error': 'Unable to load billing portal'}, status=500)
     
+    @extend_schema(tags=['03. Subscription'])
+    @extend_schema(
+        request=inline_serializer(
+            name='ManageSubscriptionRequest',
+            fields={
+                'action': serializers.ChoiceField(choices=['cancel', 'reactivate'])
+            }
+        ),
+        responses={200: OpenApiTypes.OBJECT},
+        description="Cancel or reactivate subscription",
+        examples=[
+            OpenApiExample(
+                'Cancel Subscription',
+                value={"action": "cancel"},
+                request_only=True
+            ),
+            OpenApiExample(
+                'Reactivate Subscription',
+                value={"action": "reactivate"},
+                request_only=True
+            )
+        ]
+    )
     def post(self, request):
         """Cancel or reactivate subscription"""
         user = request.user
@@ -288,6 +346,7 @@ class ManageSubscriptionView(APIView):
             return Response({'error': str(e)}, status=500)
 
 
+@extend_schema(exclude=True)
 @method_decorator(csrf_exempt, name='dispatch')
 class StripeWebhookView(APIView):
     def post(self, request):
@@ -624,9 +683,28 @@ class StripeWebhookView(APIView):
             pass
 
 
+@extend_schema(tags=['03. Subscription'])
 class VerifyStripeSessionView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(tags=['03. Subscription'])
+    @extend_schema(
+        request=inline_serializer(
+            name='VerifySessionRequest',
+            fields={
+                'session_id': serializers.CharField()
+            }
+        ),
+        responses={200: OpenApiTypes.OBJECT},
+        description="Verify Stripe checkout session and activate subscription",
+        examples=[
+            OpenApiExample(
+                'Verify Session',
+                value={"session_id": "cs_test_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0"},
+                request_only=True
+            )
+        ]
+    )
     def post(self, request):
         session_id = request.data.get('session_id')
         user = request.user
@@ -682,6 +760,7 @@ class VerifyStripeSessionView(APIView):
             return Response({'error': str(e)}, status=500)
 
 
+@extend_schema(tags=['03. Subscription'])
 class BillingHistoryView(APIView):
     """View billing/payment history"""
     permission_classes = [IsAuthenticated]

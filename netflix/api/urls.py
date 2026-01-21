@@ -8,10 +8,11 @@ from .views_stripe import (
     SubscriptionPlanListView, SubscriptionStatusView, ManageSubscriptionView, BillingHistoryView
 )
 from .views_device import (
-    DeviceTokenObtainPairView, ProfileSelectView, StreamLogoutView, ActiveStreamsView
+    DeviceTokenObtainPairView, ProfileSelectView, StreamLogoutView, ActiveStreamsView,
+    CustomTokenRefreshView
 )
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenRefreshView
+# from rest_framework_simplejwt.views import TokenRefreshView
 
 from rest_framework.routers import DefaultRouter
 
@@ -33,7 +34,7 @@ router.register('downloads', DownloadViewSet, basename='download')
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/login/', DeviceTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
 
 
     path('profile/select/', ProfileSelectView.as_view(), name='profile-select'),
