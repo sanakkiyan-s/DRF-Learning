@@ -492,8 +492,7 @@ class StripeWebhookView(APIView):
                 subscription_id = parent.get('subscription')
         
         invoice_number = invoice.get('number')
-        
-        if invoice.get('paid') is False:
+        if invoice.get('status') not in ['paid', 'open']:
             return
         
         if not subscription_id:
